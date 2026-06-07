@@ -24,6 +24,7 @@ def show_video(video_id: int, db: Session = Depends(get_db)):
 
 @router.post('/upload')
 def upload_video(file : UploadFile = File(...), db: Session = Depends(get_db)):
+    os.makedirs("uploads", exist_ok=True)
     file_location = f'uploads/{file.filename}'
     
     with open(file_location, "wb") as f:

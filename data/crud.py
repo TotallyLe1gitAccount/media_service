@@ -1,16 +1,16 @@
-from models import Video
+from data.models import Video
 from sqlalchemy.orm import Session
 
 def create_video(db : Session, filename : str, path : str):
     video = Video(filename=filename, path=path)
     db.add(video)
     db.commit()
-    db.refresh()
+    db.refresh(video)
     
     return video
 
 def get_video(db : Session, video_id : int):
-    return db.query(Video).filter_by(Video.id == video_id).first()
+    return db.query(Video).filter(Video.id == video_id).first()
 
 def get_all_videos(db : Session):
     return db.query(Video).all()
