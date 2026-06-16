@@ -28,24 +28,25 @@ def show_video(video_id: int, db: Session = Depends(get_db)):
     return video 
 
 @router.post('/upload')
-async def upload_video(file : UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_video(file: UploadFile = File(...), db: Session = Depends(get_db)):
     os.makedirs("uploads", exist_ok=True)
+
     file_name = f"{uuid.uuid4()}.mp4"
     file_location = f'uploads/{file_name}'
 
     if not await validate_size(file):
-         raise HTTPException(status_code=413, detail="file size too big")
+        raise HTTPException(status_code=413, detail="file size too big")
 
     if not await validate_content(file):
-            raise HTTPException(status_code=400, detail="invalid type")
-     
+        raise HTTPException(status_code=400, detail="invalid type")
+
     save_file(file, file_location)
 
     file_info = probe(file_location)
     ok, error = validate_metadata(file_info)
 
     if not ok:
-         raise HTTPException(status_code=400, detail=error)
+        raise HTTPException(status_code=400, detail=error)
 
     video = create_video(db, filename=file.filename, path=file_location)
 
