@@ -1,4 +1,7 @@
 import uuid
+from API.utils.path_generator import (
+    generate_processed_path, 
+    generate_raw_path)
 
 class VideoService:
     def __init__(self, validator, normalizer, saver, repo):
@@ -6,21 +9,25 @@ class VideoService:
         self.normalizer = normalizer
         self.saver = saver
         self.repo = repo
-
-    def _generate_path(self, file):
-        return f"uploads/raw/{uuid.uuid4()}.mp4"
-        
+     
     async def upload_video(self, file, db):
-        path = self._generate_path(file)
+        path = generate_raw_path()
 
-        await self.validator.validate_size(file)
-        await self.validator.validate_content(file)
-        await self.saver.save_file(file, path)
+        ok, error = self.validator.validate_size(file)
+        if not ok:
+            return error
+
+        ok, error = await self.validator.validate_content(file)
+        if not ok:
+            return error
 
         info = self.normalizer.probe(path)
 
-        self.validator.validate_metadata(info)
-        output_path = "uploads/processed/p_" + f"{uuid.uuid4()}" + ".mp4"
+        ok, error = self.validator.validate_metadata(info)
+        if not ok:
+            return error
+
+        output_path = generate_processed_path()
         final_path = self.normalizer.normalize_video(path, output_path)
         
         return self.repo.create_video(db, file.filename, final_path)

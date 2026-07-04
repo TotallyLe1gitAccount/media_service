@@ -12,13 +12,11 @@ class VideoValidator:
         format_info = info.get("format", {})
 
         video_stream = None
-        audio_stream = None
 
         for s in streams:
             if s.get("codec_type") == "video":
                 video_stream = s
-            if s.get("codec_type") == "audio":
-                audio_stream = s
+
 
         if not video_stream:
             return False, {"code": "no_video_stream"}
@@ -31,6 +29,8 @@ class VideoValidator:
 
         if width > 1920 or height > 1080:
             return False, {"code": "resolution_too_high"}
+        elif width <= 0 or height <= 0:
+            return False, {"code": "resolution_too_low"}
         
         try:
             num, den = map(int, video_stream.get("avg_frame_rate", "0/1").split("/"))
@@ -41,29 +41,38 @@ class VideoValidator:
         if fps > 60:
             return False, {"code": "fps_too_high"}
         elif fps <= 0:
-            return False, {"code" : "fps_too_low"}
+            return False, {"code": "fps_too_low"}
         
         duration = float(format_info.get("duration", 0))
 
         if duration > 600:
-            return False, {"code" : "video_too_long"}
+            return False, {"code": "video_too_long"}
         elif duration <= 0:
-            return False, {"code" : "video_too_short"}
+            return False, {"code": "video_too_short"}
         
-        return True, {"code" : "OK"}
+        return True, {"code": "OK"}
 
-    async def validate_size(self, file) -> bool:
+    def validate_size(self, file) -> tuple[bool, dict[str, str]]:
         file.file.seek(0, 2)
         size = file.file.tell()
         file.file.seek(0)
 
-        return size <= MAX_FILE_SIZE
+        proper_size = size <= MAX_FILE_SIZE
+        if not proper_size:
+            return False, {"code": "file_too_big"}
+        
+        return True, {"code": "OK"}
 
-    async def validate_content(self, file) -> bool:
+    async def validate_content(self, file) -> tuple[bool, dict[str, str]]:
         content = await file.read(2048)
         await file.seek(0)
 
-        return magic.from_buffer(content, mime=True) in ALLOWED_MIME_TYPES
+        proper_content = magic.from_buffer(content, mime=True) in ALLOWED_MIME_TYPES
+        if not proper_content:
+            return False, {"code": "invalid_content"}
+        
+        return True, {"code": "OK"}
+        
     
 
 
